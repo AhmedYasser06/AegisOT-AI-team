@@ -5,7 +5,7 @@ from pathlib import Path
 # Paths
 BASE_DIR = Path(__file__).resolve().parents[2]
 COMBINED_PATH = BASE_DIR / "data" / "processed" / "combined_sensor_data.csv"
-OUTPUT_PATH = BASE_DIR / "data" / "processed" / "combined_sensor_data_labeled.csv"
+OUTPUT_PATH = BASE_DIR / "data" / "processed" / "Final_labeled.csv"
 
 
 # Load dataset
