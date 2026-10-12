@@ -1,0 +1,31 @@
+# Non-secret configuration. Secrets (API keys) go in .env, never here.
+# Priority: environment variables > .env > this file > code defaults.
+
+# ── ML team (example from the README: edit as needed) ──
+model:
+  name: isolation_forest
+  threshold: 0.5
+
+api:
+  host: 0.0.0.0
+  port: 8001
+
+# ── Agents team: keys are the setting names (same as the env vars, lowercase) ──
+agents:
+  llm_enabled:  true        # false = deterministic rules only (no key needed). true = crewAI agents use the LLM
+  llm_provider: gemini        # gemini | openai | anthropic | ollama | azure ...  (key via .env, e.g. GEMINI_API_KEY)
+  # llm_model: gemini/gemini-flash-latest   # optional; pin an exact model name for reproducible results
+  llm_temperature: 0.0
+  llm_timeout_s: 60
+  # llm_agents: diagnosis,network,security,maintenance,supervisor   # roles that use the LLM (others use rules)
+  # llm_max_concurrent: 4                                           # 1 = one agent at a time (free tiers)
+
+  evidence_window_minutes: 5
+  min_confidence: 0.55        # below this the result is "inconclusive"
+  min_margin: 0.15            # winner must beat the runner-up by this much
+  push_result_to_backend: false
+
+  # each integration: mock (works standalone) | http (real team service)
+  backend_mode: mock
+  network_mode: mock
+  anomaly_mode: inline        # inline = the ML result arrives inside the request (recommended)
