@@ -18,3 +18,8 @@ anthropic>=0.40        # required by crewAI for anthropic/* models
 pytest>=8
 
 # ── ML team: add your dependencies below (pandas, numpy, scikit-learn, joblib, ...) ──
+# ── ML team: data preprocessing ──
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+joblib>=1.4
