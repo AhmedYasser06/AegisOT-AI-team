@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="src/agents/docs/architecture.jpg" alt="AegisOT AI architecture" width="760">
-</p>
 
 # AegisOT AI
 
@@ -9,6 +6,9 @@ The **AI team's part** of AegisOT, a smart-factory platform (IoT + ML + agentic 
 An ESP32 sends sensor data. An ML model spots anomalies. When it finds a real one, a small team of **agents** works out *why* it happened, proposes *what to do*, and a **human operator approves or rejects** it. The AI never executes anything on its own.
 
 ---
+<p align="center">
+  <img src="src/agents/docs/architecture.jpg" alt="AegisOT AI architecture" width="760">
+</p>
 
 ## How it works
 
