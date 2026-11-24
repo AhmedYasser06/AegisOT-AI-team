@@ -1,0 +1,13 @@
+Model: lof
+Split: train
+Threshold: 1.8202903386095501
+MLflow Run ID: c77012a11c504c0ea20633fdee62f8a0
+
+              precision    recall  f1-score   support
+
+      Normal       1.00      0.99      0.99      8350
+     Anomaly       0.96      1.00      0.98      2292
+
+    accuracy                           0.99     10642
+   macro avg       0.98      0.99      0.99     10642
+weighted avg       0.99      0.99      0.99     10642

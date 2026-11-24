@@ -1,0 +1,53 @@
+{
+    "feature_columns": [
+        "motor_running",
+        "speed_percent",
+        "bus_voltage_v",
+        "shunt_voltage_mv",
+        "current_ma",
+        "power_mw",
+        "temperature_c",
+        "accel_x_m_s2",
+        "accel_y_m_s2",
+        "accel_z_m_s2",
+        "gyro_x_rad_s",
+        "gyro_y_rad_s",
+        "gyro_z_rad_s",
+        "rpm",
+        "acceleration_magnitude",
+        "gyro_magnitude"
+    ],
+    "dropped_constant_features": [
+        "ina219_ok",
+        "power_data_valid",
+        "ds18b20_ok",
+        "temperature_valid",
+        "mpu6050_ok",
+        "mpu_data_valid"
+    ],
+    "fit_rows_normal_train": 8350,
+    "rows_per_set": {
+        "train": 10642,
+        "val": 3520,
+        "test": 3461
+    },
+    "block_size": 50,
+    "set_pattern": [
+        "train",
+        "train",
+        "val",
+        "train",
+        "test"
+    ],
+    "preprocessing_per_model": {
+        "robust_baseline": "median imputer -> median/MAD robust z",
+        "isolation_forest": "median imputer",
+        "lof": "median imputer -> RobustScaler",
+        "ocsvm": "median imputer -> RobustScaler",
+        "autoencoder": "median imputer -> StandardScaler"
+    },
+    "drop_current_features": false,
+    "random_state": 42,
+    "sklearn_version": "1.7.2",
+    "probe_rows": 20
+}

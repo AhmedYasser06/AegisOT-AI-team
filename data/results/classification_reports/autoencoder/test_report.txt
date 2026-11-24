@@ -1,0 +1,13 @@
+Model: autoencoder
+Split: test
+Threshold: 0.005345466343268568
+MLflow Run ID: a68dfb5948f14ac39d2e926a50fbcfe1
+
+              precision    recall  f1-score   support
+
+      Normal       1.00      0.98      0.99      2750
+     Anomaly       0.94      1.00      0.97       711
+
+    accuracy                           0.99      3461
+   macro avg       0.97      0.99      0.98      3461
+weighted avg       0.99      0.99      0.99      3461

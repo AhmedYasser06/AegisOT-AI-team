@@ -1,0 +1,13 @@
+Model: ocsvm
+Split: test
+Threshold: 0.0004153848790729552
+MLflow Run ID: 796e483b81e447c78c07c887c2c68296
+
+              precision    recall  f1-score   support
+
+      Normal       1.00      0.96      0.98      2750
+     Anomaly       0.87      1.00      0.93       711
+
+    accuracy                           0.97      3461
+   macro avg       0.94      0.98      0.96      3461
+weighted avg       0.97      0.97      0.97      3461

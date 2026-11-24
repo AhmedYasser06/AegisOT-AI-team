@@ -1,0 +1,13 @@
+Model: isolation_forest
+Split: val
+Threshold: 0.025866221272871755
+MLflow Run ID: f26eccaf840441b9a1c212beb8d4a1d1
+
+              precision    recall  f1-score   support
+
+      Normal       0.84      0.97      0.90      2770
+     Anomaly       0.71      0.31      0.43       750
+
+    accuracy                           0.83      3520
+   macro avg       0.77      0.64      0.67      3520
+weighted avg       0.81      0.83      0.80      3520

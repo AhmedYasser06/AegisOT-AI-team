@@ -1,0 +1,35 @@
+{
+    "model_key": "lof",
+    "model_name": "LOF",
+    "split": "val",
+    "threshold": 1.8202903386095501,
+    "run_id": "c77012a11c504c0ea20633fdee62f8a0",
+    "prediction_rule": "score > threshold",
+    "classification_report": {
+        "Normal": {
+            "precision": 0.9996372869060574,
+            "recall": 0.9949458483754513,
+            "f1-score": 0.9972860502985345,
+            "support": 2770.0
+        },
+        "Anomaly": {
+            "precision": 0.981651376146789,
+            "recall": 0.9986666666666667,
+            "f1-score": 0.9900859220092532,
+            "support": 750.0
+        },
+        "accuracy": 0.9957386363636364,
+        "macro avg": {
+            "precision": 0.9906443315264232,
+            "recall": 0.996806257521059,
+            "f1-score": 0.9936859861538938,
+            "support": 3520.0
+        },
+        "weighted avg": {
+            "precision": 0.995805061602236,
+            "recall": 0.9957386363636364,
+            "f1-score": 0.9957519320550796,
+            "support": 3520.0
+        }
+    }
+}
