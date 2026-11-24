@@ -1,0 +1,35 @@
+{
+    "model_key": "autoencoder",
+    "model_name": "Neural Autoencoder",
+    "split": "train",
+    "threshold": 0.005345466343268568,
+    "run_id": "a68dfb5948f14ac39d2e926a50fbcfe1",
+    "prediction_rule": "score > threshold",
+    "classification_report": {
+        "Normal": {
+            "precision": 0.9998790517658442,
+            "recall": 0.990059880239521,
+            "f1-score": 0.9949452401010952,
+            "support": 8350.0
+        },
+        "Anomaly": {
+            "precision": 0.9650379106992418,
+            "recall": 0.9995636998254799,
+            "f1-score": 0.9819974282040291,
+            "support": 2292.0
+        },
+        "accuracy": 0.9921067468520954,
+        "macro avg": {
+            "precision": 0.982458481232543,
+            "recall": 0.9948117900325004,
+            "f1-score": 0.9884713341525622,
+            "support": 10642.0
+        },
+        "weighted avg": {
+            "precision": 0.9923752089426294,
+            "recall": 0.9921067468520954,
+            "f1-score": 0.9921566303596863,
+            "support": 10642.0
+        }
+    }
+}

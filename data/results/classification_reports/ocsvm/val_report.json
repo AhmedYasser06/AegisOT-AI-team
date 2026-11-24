@@ -1,0 +1,35 @@
+{
+    "model_key": "ocsvm",
+    "model_name": "One-Class SVM",
+    "split": "val",
+    "threshold": 0.0004153848790729552,
+    "run_id": "796e483b81e447c78c07c887c2c68296",
+    "prediction_rule": "score > threshold",
+    "classification_report": {
+        "Normal": {
+            "precision": 1.0,
+            "recall": 0.9776173285198556,
+            "f1-score": 0.9886820007301935,
+            "support": 2770.0
+        },
+        "Anomaly": {
+            "precision": 0.9236453201970444,
+            "recall": 1.0,
+            "f1-score": 0.9603072983354674,
+            "support": 750.0
+        },
+        "accuracy": 0.9823863636363637,
+        "macro avg": {
+            "precision": 0.9618226600985222,
+            "recall": 0.9888086642599279,
+            "f1-score": 0.9744946495328304,
+            "support": 3520.0
+        },
+        "weighted avg": {
+            "precision": 0.9837312472010749,
+            "recall": 0.9823863636363637,
+            "f1-score": 0.9826362544813173,
+            "support": 3520.0
+        }
+    }
+}

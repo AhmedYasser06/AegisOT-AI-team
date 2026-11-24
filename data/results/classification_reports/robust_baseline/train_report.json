@@ -1,0 +1,35 @@
+{
+    "model_key": "robust_baseline",
+    "model_name": "Robust Statistical Baseline",
+    "split": "train",
+    "threshold": 8.0,
+    "run_id": "ce9d67be32184f929258319ff17b840a",
+    "prediction_rule": "score > threshold",
+    "classification_report": {
+        "Normal": {
+            "precision": 0.9564748201438849,
+            "recall": 0.9553293413173652,
+            "f1-score": 0.9559017375674056,
+            "support": 8350.0
+        },
+        "Anomaly": {
+            "precision": 0.8379669852302346,
+            "recall": 0.8416230366492147,
+            "f1-score": 0.8397910317805833,
+            "support": 2292.0
+        },
+        "accuracy": 0.9308400676564555,
+        "macro avg": {
+            "precision": 0.8972209026870597,
+            "recall": 0.89847618898329,
+            "f1-score": 0.8978463846739945,
+            "support": 10642.0
+        },
+        "weighted avg": {
+            "precision": 0.9309514262684773,
+            "recall": 0.9308400676564555,
+            "f1-score": 0.930894620703715,
+            "support": 10642.0
+        }
+    }
+}
