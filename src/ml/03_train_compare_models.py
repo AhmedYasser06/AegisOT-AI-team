@@ -1,20 +1,3 @@
-"""
-Train, tune and compare the five AegisOT anomaly detectors, tracked with MLflow.
-
-Flow (the order matters, it keeps model selection and final testing apart):
-
-  1. SWEEP      for every model family, fit every hyperparameter configuration on the NORMAL train rows,
-                evaluate on train + validation only. The test arrays are never read in this phase.
-  2. SELECTION  best configuration per family and best family overall, chosen by validation metrics only.
-  3. FINAL TEST the selected configuration of each family is evaluated once on the untouched test set.
-                Test results are reported, they never feed back into the selection.
-  4. SAVE       the validation winner is saved as one bundle (preprocessor + model + threshold + features).
-
-MLflow layout:
-  experiments  AegisOT_<model_key>  (x5)      and   AegisOT_Models_Comparison
-  per model    parent run  "<key>_sweep"      -> one child run "<key>_NN" per hyperparameter configuration
-  comparison   parent run  "final_comparison" -> one child run "final_<key>" per selected family configuration
-"""
 from pathlib import Path
 import itertools
 import json
@@ -63,9 +46,11 @@ from pipelines import (
 # 1. CONFIGURATION
 # ============================================================
 ROOT = Path(__file__).resolve().parents[2]
+
 PROCESSED_DIR = ROOT / "data" / "processed"
 RESULTS_DIR = ROOT / "data" / "results"
 PLOTS_DIR = RESULTS_DIR / "final_plots"
+MODELS_DIR = ROOT / "models"
 
 # One tracking database and one artifact folder, both anchored to the project root, so the result does
 # not depend on the directory the script is started from.
@@ -595,16 +580,16 @@ def save_best_model(winner, meta):
     key = winner["key"]
     bundle = make_bundle(key, load_preprocessor(key), winner["model"], winner["params"],
                         winner["threshold"], meta["feature_columns"], RANDOM_STATE)
-    path = RESULTS_DIR / "best_model.joblib"
+    path = MODELS_DIR / "best_model.joblib"
     joblib.dump(bundle, path)
-    with open(RESULTS_DIR / "best_model_metadata.json", "w") as f:
+    with open(MODELS_DIR / "best_model_metadata.json", "w") as f:
         json.dump(bundle_metadata(bundle), f, indent=4)
     return bundle
 
 
 def verify_bundle(winner):
     """Reload the saved bundle and check it scores exactly like the training pipeline."""
-    bundle = joblib.load(RESULTS_DIR / "best_model.joblib")
+    bundle = joblib.load(MODELS_DIR / "best_model.joblib")
     data = load_data(winner["key"])
     probe = data["raw_probe"]
     z_bundle = bundle["preprocessor"].transform(probe)
@@ -686,15 +671,15 @@ def log_final_comparison(ranked, winner, meta, experiment_ids, execution_id):
             "warning": ("Selected on a single recording per condition. Check recall and false positive "
                         "rate on new runs before deploying."),
         }
-        with open(RESULTS_DIR / "best_model.json", "w") as f:
+        with open(MODELS_DIR / "best_model.json", "w") as f:
             json.dump(report, f, indent=4, default=str)
 
         for name in ["model_comparison.csv", "final_test_results.csv", "all_runs.csv"]:
             mlflow.log_artifact(str(RESULTS_DIR / name), artifact_path="tables")
         mlflow.log_artifact(str(RESULTS_DIR / "train_vs_val.png"), artifact_path="plots")
-        mlflow.log_artifact(str(RESULTS_DIR / "best_model.joblib"), artifact_path="best_model")
-        mlflow.log_artifact(str(RESULTS_DIR / "best_model_metadata.json"), artifact_path="best_model")
-        mlflow.log_artifact(str(RESULTS_DIR / "best_model.json"), artifact_path="best_model")
+        mlflow.log_artifact(str(MODELS_DIR / "best_model.joblib"), artifact_path="best_model")
+        mlflow.log_artifact(str(MODELS_DIR / "best_model_metadata.json"), artifact_path="best_model")
+        mlflow.log_artifact(str(MODELS_DIR / "best_model.json"), artifact_path="best_model")
         return parent.info.run_id
 
 

@@ -19,7 +19,7 @@ DATA_DIR = PROJECT_ROOT / "src" / "data"
 sys.path.insert(0, str(DATA_DIR))
 from pipelines import predict_raw_with_top_features
 
-BUNDLE_PATH = PROJECT_ROOT / "data" / "results" / "best_model.joblib"
+BUNDLE_PATH = PROJECT_ROOT / "models" / "best_model.joblib"
 
 app = FastAPI(
     title="AegisOT Anomaly Detection API",
