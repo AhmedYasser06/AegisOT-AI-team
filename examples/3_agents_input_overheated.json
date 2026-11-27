@@ -1,0 +1,57 @@
+{
+  "incident_id": "AGT-overheated",
+  "asset_id": "esp32-conveyor-01",
+  "timestamp": "2026-10-28T04:16:37.336000Z",
+  "window": {
+    "start": "2026-10-28T04:16:35.936000Z",
+    "end": "2026-10-28T04:16:37.336000Z",
+    "n_samples": 8,
+    "duration_seconds": 1.4
+  },
+  "is_anomaly": true,
+  "anomaly_score": 0.7125877939307907,
+  "raw_score": 4.513088342500541,
+  "threshold": 1.8202903386095501,
+  "model": {
+    "name": "lof",
+    "version": "0.1",
+    "feature_version": "f1"
+  },
+  "top_features": [
+    {
+      "name": "temperature_c",
+      "contribution": 2.8997,
+      "value": 31.75,
+      "baseline": 26.5,
+      "direction": "high"
+    },
+    {
+      "name": "bus_voltage_v",
+      "contribution": 0.5787,
+      "value": 7.116,
+      "baseline": 10.964,
+      "direction": "low"
+    },
+    {
+      "name": "current_ma",
+      "contribution": 0.4999,
+      "value": 259.4,
+      "baseline": 189.1,
+      "direction": "high"
+    },
+    {
+      "name": "shunt_voltage_mv",
+      "contribution": 0.3269,
+      "value": 21.41,
+      "baseline": 19.01,
+      "direction": "high"
+    },
+    {
+      "name": "gyro_y_rad_s",
+      "contribution": 0.1597,
+      "value": -0.0298,
+      "baseline": -0.028,
+      "direction": "low"
+    }
+  ]
+}

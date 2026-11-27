@@ -1,16 +1,3 @@
-"""Business logic of the agent layer (the "controller" in mini-rag terms).
-
-The HTTP router stays thin and only translates between HTTP and this class, so the same service can also be
-called from a script, a test or a queue worker.
-
-Two ways to run an incident:
-  analyze()          -> waits for everything, returns ONE IncidentAssessment
-  analyze_stream()   -> yields (event, data) as things happen (used by the SSE endpoint)
-
-Stream events, in order:
-  accepted -> evidence_collected -> preliminary -> vote (x4, as each specialist finishes) -> decision
-  -> explanation_token (many) -> done                      (or `error`)
-"""
 from __future__ import annotations
 
 import time
@@ -19,7 +6,7 @@ from typing import Iterator
 from .agents import Runner
 from .clients import ClientError, Clients, build_clients
 from .graph import (NARRATIVE_SYSTEM, build_graph, initial_state, llm_roles_of, narrative_facts, run_incident)
-from .llm import resolve_llm, short_error, stream_text
+from .llm import iter_with_deadline, resolve_llm, short_error, stream_text
 from .roles import SPECIALISTS
 from .schemas import AlertIn, IncidentAssessment
 from .settings import Settings, get_settings
@@ -120,7 +107,8 @@ class IncidentService:
         reports = [r.rules(alert, pack) for r in SPECIALISTS.values()]
         pre = build_assessment(alert, pack, reports, self.settings, [])
         yield "preliminary", {"t_ms": _ms(t0), "final": False, "status": pre.status,
-                              "likely_cause": pre.likely_cause.value, "confidence": pre.confidence,
+                              "likely_cause": pre.likely_cause.value, "fault_type": pre.fault_type.value,
+                              "headline": pre.headline, "confidence": pre.confidence,
                               "recommended_action": pre.recommended_action.value, "engine": "rules"}
 
     def _vote_events(self, role, out, t0):
@@ -136,13 +124,15 @@ class IncidentService:
         try:
             spec = resolve_llm(self.settings, "supervisor")
             pieces = []
-            for piece in stream_text(spec, NARRATIVE_SYSTEM, narrative_facts(final)):
+            for piece in iter_with_deadline(stream_text(spec, NARRATIVE_SYSTEM, narrative_facts(final)),
+                                            self.settings.narrative_timeout_s):
                 pieces.append(piece)
                 yield "explanation_token", {"t": piece}
             text = "".join(pieces).strip()
             if text:
                 final.explanation = text
                 final.llm_models_used = sorted({*final.llm_models_used, spec.model})
+                final.llm = final.llm.model_copy(update={"narrative_model": spec.model})
         except Exception as e:
             final.notes.append(f"supervisor narrative failed ({short_error(e)}); template used.")
             yield "note", {"message": final.notes[-1]}

@@ -1,7 +1,3 @@
-# Non-secret configuration. Secrets (API keys) go in .env, never here.
-# Priority: environment variables > .env > this file > code defaults.
-
-# ── ML team (example from the README: edit as needed) ──
 model:
   name: isolation_forest
   threshold: 0.5
@@ -10,26 +6,25 @@ api:
   host: 0.0.0.0
   port: 8001
 
-# ── Agents team: keys are the setting names (same as the env vars, lowercase) ──
+
 agents:
-  llm_enabled:  false       # false = deterministic rules only (no key needed). true = crewAI agents use the LLM
-  llm_provider: gemini        # gemini | openai | anthropic | ollama | azure ...  (key via .env, e.g. GEMINI_API_KEY)
-  # LLM_MODEL=gemini/gemini-flash-lite-latest   # optional; pin an exact model name for reproducible results
+  llm_enabled:  false       # false = deterministic rules only. true = crewAI agents use the LLM
+  llm_provider: gemini 
+  # LLM_MODEL=gemini/gemini-flash-lite-latest
   llm_temperature: 0.0
   llm_timeout_s: 30
-  llm_agents: diagnosis,supervisor      # only these two can use an LLM; network/security/maintenance are rule-only
+  llm_agents: diagnosis,supervisor     
   specialist_engine: direct             # direct = 1 LLM call per agent (fast) | crewai = tool loop (slow)
   ml_validated: false                   # true only after the ML model passes the NEW-recording test
-  telemetry_channels: ""                 # e.g. temperature_c,gyro_mag  (empty = all channels)
-  default_asset_id: esp32-conveyor-01   # used when the ML JSON has no asset_id
-  # llm_max_concurrent: 4                                           # 1 = one agent at a time (free tiers)
+  telemetry_channels: ""               
+  default_asset_id: esp32-conveyor-01   
 
   evidence_window_minutes: 5
-  min_confidence: 0.55        # below this the result is "inconclusive"
-  min_margin: 0.15            # winner must beat the runner-up by this much
+  min_confidence: 0.55       
+  min_margin: 0.15          
   push_result_to_backend: false
 
-  # each integration: mock (works standalone) | http (real team service)
+
   backend_mode: mock
   network_mode: mock
-  anomaly_mode: inline        # inline = the ML result arrives inside the request (recommended)
+  anomaly_mode: inline       

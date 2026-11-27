@@ -25,7 +25,7 @@ TEAM_PAYLOAD = {"asset_id": "esp32-conveyor-01", "incident_id": "INC-001", "is_a
 
 # ───────── input/output formats ─────────
 def test_team_ai_result_format_is_accepted_as_is(agent_client):
-    r = agent_client.post("/api/v1/incident/analyze", json=TEAM_PAYLOAD, headers=H)
+    r = agent_client.post("/api/v1/incident/analyze?view=full", json=TEAM_PAYLOAD, headers=H)
     assert r.status_code == 200, r.text
     d = r.json()
     assert d["incident_id"] == "INC-001" and d["alert_id"] == "INC-001"        # alert_id defaults to incident_id
@@ -85,13 +85,13 @@ def test_env_overrides_yaml(tmp_path, monkeypatch):
 
 # ───────── LLM_PROVIDER / LLM_MODEL (team .env style) ─────────
 @pytest.mark.parametrize("provider,model,expected", [
-    ("gemini", None, "gemini/gemini-flash-latest"),
+    ("gemini", None, "gemini/gemini-flash-lite-latest"),
     ("openai", None, "openai/gpt-4o-mini"),
     ("anthropic", None, "anthropic/claude-sonnet-4-6"),
     ("ollama", "qwen2.5", "ollama/qwen2.5"),
     ("gemini", "gemini-2.5-pro", "gemini/gemini-2.5-pro"),
     ("gemini", "openai/gpt-4o", "openai/gpt-4o"),            # explicit provider/model wins
-    (None, None, "gemini/gemini-flash-latest"),                  # team default provider
+    (None, None, "gemini/gemini-flash-lite-latest"),                  # team default provider
     (None, "gpt-4o-mini", "gpt-4o-mini"),
 ])
 def test_provider_and_model_resolution(provider, model, expected):
@@ -103,7 +103,7 @@ def test_provider_and_model_resolution(provider, model, expected):
 def test_per_agent_override_with_provider():
     s = Settings(_env_file=None, llm_provider="gemini", llm_model_supervisor="anthropic/claude-sonnet-4-6")
     assert resolve_llm(s, "supervisor").model == "anthropic/claude-sonnet-4-6"
-    assert resolve_llm(s, "diagnosis").model == "gemini/gemini-flash-latest"
+    assert resolve_llm(s, "diagnosis").model == "gemini/gemini-flash-lite-latest"
 
 
 # ───────── ML team hook in src/api/main.py ─────────

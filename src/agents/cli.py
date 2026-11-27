@@ -1,4 +1,4 @@
-"""Terminal demo of the agent workflow (no API server, no LLM key needed with mock data).
+"""Terminal demo of the agent workflow.
 
     python -m src.agents.cli                                   # the 5 demo scenarios
     python -m src.agents.cli --asset esp32-conveyor-01 --score 0.93 --json

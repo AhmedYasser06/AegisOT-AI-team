@@ -24,6 +24,16 @@ def create_app(settings: Settings | None = None, clients: Clients | None = None,
                 "integrations": {"backend": settings.backend_mode, "anomaly": settings.anomaly_mode,
                                  "network": settings.network_mode}}
 
+    if settings.llm_enabled:      # first litellm import takes seconds: pay it at start-up, not on the first request
+        import threading
+
+        def _warm():
+            try:
+                import litellm  # noqa: F401
+            except Exception:
+                pass
+        threading.Thread(target=_warm, daemon=True).start()
+
     # Agents: /api/v1/incident/analyze, /api/v1/diagnosis/analyze, /api/v1/agents/*
     app.include_router(build_agent_router(settings, clients, runner))
 

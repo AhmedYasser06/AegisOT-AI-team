@@ -1,20 +1,15 @@
-"""Deterministic specialists (no LLM). They are:
-  * the fallback when the LLM is disabled, down, or returns invalid output (proposal §10.2)
-  * the baseline the agent workflow is compared against in the evaluation (proposal §10.3)
-Thresholds are starting points - tune them with your real sensor data.
+"""Deterministic specialists. They are:
+  * the fallback when the LLM is disabled, down, or returns invalid output 
+  * the baseline the agent workflow is compared against in the evaluation 
 """
 from __future__ import annotations
 
-from .enums import Cause
+from .enums import Cause, FaultType
 from .schemas import AlertIn, SpecialistReport
+from .signals import build_signals, corroborated, describe, evidence_confidence, primary_fault
 from .tools import EvidencePack
 
-ELEVATED_RATIO = 1.5      # channel >= 1.5x baseline counts as elevated
-LOW_RATIO = 0.6           # channel <= 0.6x baseline counts as dropped (e.g. RPM falling)
 MISSING_RATIO = 0.3       # >=30% of expected samples missing = incomplete telemetry
-# Celsius is not a ratio scale (26.5 -> 33 C is only 1.25x but it IS overheating), so temperature
-# channels are judged by how many degrees they rose above baseline instead of a ratio.
-RISE_DEGREES = {"temperature": 5.0, "temperature_c": 5.0}
 
 
 def _report(role, scores, findings, refs, checks) -> SpecialistReport:
@@ -30,53 +25,46 @@ def _num(value, default: float = 0.0) -> float:
         return default
 
 
-def _off_baseline(telemetry: dict, skip: set[str]) -> list[str]:
-    """Findings for channels far from their baseline: temperature by degrees, the rest by ratio
-    (>= 1.5x, or <= 0.6x including 0 = stalled)."""
-    out = []
-    for name, ch in telemetry["channels"].items():
-        if name in skip:
-            continue
-        if name in RISE_DEGREES:
-            delta = ch.get("delta_to_baseline")
-            if delta is not None and delta >= RISE_DEGREES[name]:
-                out.append(f"{name} is {delta:+.1f} above its baseline over the recent window.")
-            continue
-        ratio = ch["ratio_to_baseline"]
-        if ratio is None:                       # None = no baseline; 0.0 is a real value (channel dropped to zero)
-            continue
-        if ratio >= ELEVATED_RATIO or 0 <= ratio <= LOW_RATIO:
-            out.append(f"{name} is {ratio}x its baseline over the recent window.")
-    return out
-
-
 def rules_diagnosis(alert: AlertIn, pack: EvidencePack) -> SpecialistReport:
+    """Machine vs sensor, decided from MEASURED deviations (signals.py). Also names the specific fault type
+    (overheating / abnormal_vibration / electrical_fault / speed_deviation / sensor_fault) and the channels involved."""
     scores = {Cause.physical_fault: 0.05, Cause.sensor_fault: 0.05}
     findings, refs, checks = [], [], ["telemetry_summary", "anomaly_details"]
-    t = pack.telemetry
+    t, signals, bad = pack.telemetry, [], set()
     if t is None:
         findings.append("Telemetry unavailable - cannot confirm a machine or sensor fault.")
+        signals = build_signals(None, pack.anomaly)         # the ML's own value/baseline pairs, if it sent them
     else:
         refs += [r for r in pack.refs if r.startswith("telemetry:")]
         bad = set(t["flatlined"]) | set(t["implausible"])
         if bad:
             scores[Cause.sensor_fault] = 0.85
             findings.append(f"Channel(s) {sorted(bad)} flatlined or outside plausible range - likely sensor fault.")
-        elevated = _off_baseline(t, skip=bad)
+        signals = build_signals(t, pack.anomaly, skip=bad)
         if t["missing_ratio"] >= MISSING_RATIO:
             scores[Cause.physical_fault] = 0.2
             findings.append(f"{t['missing_ratio']:.0%} of expected samples missing - machine fault cannot be confirmed.")
-        elif elevated:
-            scores[Cause.physical_fault] = round(min(0.97, 0.5 + 0.5 * alert.anomaly_score), 3)
-            findings += elevated
+            signals = []
+        elif signals:
+            scores[Cause.physical_fault] = evidence_confidence(alert.anomaly_score, signals)
+            findings += [describe(s) + "." for s in signals]
         elif not bad:
             findings.append("All channels are close to baseline.")
+            checks.append("telemetry_all_within_baseline")
     if pack.anomaly:
         refs += [r for r in pack.refs if r.startswith("anomaly:")]
         feats = [f["name"] for f in pack.anomaly.get("top_features", [])[:3]]
         if feats:
             findings.append(f"Anomaly model top features: {', '.join(feats)}.")
-    return _report("diagnosis", scores, findings, refs, checks)
+    machine_fault, channels = primary_fault(signals)
+    if scores[Cause.sensor_fault] >= scores[Cause.physical_fault] and bad:
+        fault, channels = FaultType.sensor_fault, sorted(bad)
+    else:
+        fault = machine_fault if scores[Cause.physical_fault] >= 0.5 else None
+        channels = channels if fault else []
+    rep = _report("diagnosis", scores, findings, refs, checks)
+    return rep.model_copy(update={"fault_type": fault, "affected_channels": channels, "signals": signals,
+                                  "corroborated": corroborated(signals)})
 
 
 def rules_network(alert: AlertIn, pack: EvidencePack) -> SpecialistReport:

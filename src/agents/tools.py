@@ -1,18 +1,3 @@
-"""Read-only evidence tools. One table (`SOURCES`) drives everything:
-
-    * collect_evidence()      -> fetches every source once and fills an EvidencePack
-    * ToolBox.run(key)        -> the same fetch, exposed to an LLM agent (errors returned as data)
-    * crew_tools.py           -> wraps the same table as crewAI tools
-
-Function names follow the team README: get_sensor_data, get_machine_status, get_network_status,
-get_security_events, get_machine_history (+ get_anomaly_details).
-
-Safety rules (README "AI Safety Rules"):
-  * tools are read-only, typed and allowlisted; no shell / SQL / router / device access exists here
-  * every tool is bound to ONE asset (the incident's): the LLM cannot pass another asset id
-  * every successful fetch registers an evidence ref; agents may only cite refs that exist
-  * errors are returned as data, never raised into the LLM loop
-"""
 from __future__ import annotations
 
 import math

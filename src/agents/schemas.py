@@ -1,6 +1,3 @@
-"""Versioned contracts (proposal §3.1). Share these with the backend / anomaly teams.
-
-The enums live in enums.py and are re-exported here, so `from .schemas import Cause` keeps working."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -8,10 +5,11 @@ from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
-from .enums import ActionId, Cause, Risk
+from .enums import ActionId, Cause, FaultType, Risk
 from .settings import get_settings
 
-SCHEMA_VERSION = "1.1"   # 1.1 = additive only: new optional input fields + votes/latency/ml fields in the output
+SCHEMA_VERSION = "1.2"   # additive only. 1.1 = votes/latency/ml fields; 1.2 = fault_type, severity, headline, signals,
+                         # recommended_solution, reason, llm + the compact view (views.py)
 
 
 # ───────── input: the AI team's anomaly result (+ optional extras) ─────────
@@ -113,6 +111,10 @@ class SpecialistLLMOutput(BaseModel):
     findings: list[str] = Field(default_factory=list)
     evidence_refs: list[str] = Field(default_factory=list)
     checks_performed: list[str] = Field(default_factory=list)
+    # written by the diagnosis LLM (all optional: an older/odd answer without them is still valid)
+    fault_type: str | None = None                  # one of enums.LLM_FAULT_TYPES (validated in agents.sanitize)
+    headline: str | None = None                    # ONE line naming the faulty component with measured numbers
+    solution_steps: list[str] = Field(default_factory=list)   # ordered, concrete, advisory steps
 
 
 class SpecialistReport(BaseModel):
@@ -123,6 +125,14 @@ class SpecialistReport(BaseModel):
     evidence_refs: list[str]
     checks_performed: list[str]
     model: str | None = None
+    # diagnosis only
+    fault_type: FaultType | None = None
+    affected_channels: list[str] = Field(default_factory=list)
+    signals: list[dict[str, Any]] = Field(default_factory=list)    # measured deviations (see signals.py)
+    corroborated: bool = False                     # two or more kinds of measurement moved together
+    headline: str | None = None
+    solution_steps: list[str] = Field(default_factory=list)
+    llm_error: str | None = None                   # set on the rules report that replaced a failed LLM call
 
 
 # ───────── final output (proposal §10.1) ─────────
@@ -137,6 +147,14 @@ class Vote(BaseModel):
     engine: Literal["llm", "rules"]
     scores: dict[Cause, float]
     findings: list[str] = Field(default_factory=list)
+
+
+class LlmInfo(BaseModel):
+    """Did the LLM really answer? (`engine` alone cannot tell: it is `mixed` whenever the diagnosis used the LLM.)"""
+    status: Literal["ok", "fallback_rules", "disabled"] = "disabled"
+    model: str | None = None              # the model that answered the diagnosis
+    narrative_model: str | None = None    # the model that wrote the explanation
+    error: str | None = None              # why the diagnosis fell back to rules
 
 
 class IncidentAssessment(BaseModel):
@@ -157,9 +175,9 @@ class IncidentAssessment(BaseModel):
     auto_executable: bool
     checks_performed: list[str]
     explanation: str
-    diagnosis: str = ""                      # short human-readable cause (team's "diagnosis" field)
+    diagnosis: str = ""                      # = headline (team's "diagnosis" field); written by the LLM or composed from data
     evidence: list[str] = Field(default_factory=list)    # human-readable evidence sentences
-    recommended_action_text: str = ""        # human-readable action; `recommended_action` is the stable machine id
+    recommended_action_text: str = ""        # = the first solution step; `recommended_action` is the stable machine id
     engine: Literal["llm", "rules", "mixed"]
     llm_models_used: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
@@ -171,6 +189,15 @@ class IncidentAssessment(BaseModel):
     votes: list[Vote] = Field(default_factory=list)
     latency_ms: int | None = None        # total time of the run
     timings_ms: dict[str, int] = Field(default_factory=dict)   # time per node (where is it slow?)
+    # added in schema 1.2 (additive): the specific fault, the numbers behind it, and what to do
+    fault_type: FaultType = FaultType.unknown
+    severity: Literal["low", "medium", "high", "critical"] = "low"
+    headline: str = ""
+    affected_channels: list[str] = Field(default_factory=list)
+    signals: list[dict[str, Any]] = Field(default_factory=list)
+    recommended_solution: list[str] = Field(default_factory=list)
+    reason: str | None = None            # why the result is inconclusive (None when complete)
+    llm: LlmInfo = Field(default_factory=LlmInfo)
 
 
 class DiagnosisOut(BaseModel):
@@ -184,3 +211,45 @@ class DiagnosisOut(BaseModel):
     action_id: ActionId                      # machine-readable
     approval_required: bool
     status: Literal["complete", "inconclusive"]
+
+
+# ───────── compact view: the default answer of the HTTP API (what a dashboard / mobile app shows) ─────────
+class CompactAction(BaseModel):
+    id: ActionId
+    params: dict[str, Any] = Field(default_factory=dict)
+    risk: Risk
+    approval_required: bool
+    auto_executable: bool
+
+
+class CompactEvidence(BaseModel):
+    channel: str
+    value: float
+    baseline: float
+    change: str
+    direction: Literal["high", "low"]
+
+
+class IncidentCompact(BaseModel):
+    """Short answer: WHAT is wrong, HOW sure, WHAT to do. Nothing is repeated. `?view=full` gives IncidentAssessment."""
+    incident_id: str
+    asset_id: str
+    status: Literal["complete", "inconclusive"]
+    severity: Literal["low", "medium", "high", "critical"]
+    likely_cause: Cause
+    fault_type: FaultType
+    headline: str
+    confidence: float
+    summary: str
+    affected_channels: list[str] = Field(default_factory=list)
+    evidence: list[CompactEvidence] = Field(default_factory=list)
+    recommended_solution: list[str] = Field(default_factory=list)
+    action: CompactAction
+    alternatives: list[Alternative] = Field(default_factory=list)
+    other_checks: list[str] = Field(default_factory=list)     # maintenance / network / security results
+    reason: str | None = None
+    llm: LlmInfo
+    notes: list[str] = Field(default_factory=list)
+    anomaly_score: float | None = None
+    latency_ms: int | None = None
+    created_at: datetime

@@ -1,11 +1,8 @@
-"""FastAPI router for the agent layer. Included by src/api/main.py (the shared AI API).
-
-Thin on purpose: validate input, call IncidentService, map errors to HTTP codes.
-"""
 from __future__ import annotations
 
 import hmac
 import json
+from typing import Union
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -15,8 +12,9 @@ from .clients import ClientError, Clients
 from .llm import resolve_llm
 from .policy import ALLOWLIST
 from .roles import LLM_ROLES
-from .schemas import AlertIn, DiagnosisOut, IncidentAssessment
+from .schemas import AlertIn, DiagnosisOut, IncidentAssessment, IncidentCompact
 from .service import IncidentService, NotAnAnomaly
+from .views import to_compact
 from .settings import Settings, get_settings
 from .tools import EvidencePack, collect_evidence, get_network_status, parse_channels
 
@@ -32,6 +30,12 @@ def build_agent_router(settings: Settings | None = None, clients: Clients | None
 
     r = APIRouter(dependencies=[Depends(auth)], tags=["agents"])
 
+    View = Query(default="compact", pattern="^(compact|full)$",
+                 description="compact = short answer for the dashboard/mobile app (default); full = every field")
+
+    def shaped(a: IncidentAssessment, view: str):
+        return a if view == "full" else to_compact(a)
+
     def analyze(alert: AlertIn, push: bool | None, force: bool) -> IncidentAssessment:
         try:
             return service.analyze(alert, push, force)
@@ -39,12 +43,14 @@ def build_agent_router(settings: Settings | None = None, clients: Clients | None
             raise HTTPException(422, str(e))
 
     # ───────── main endpoints (names from the team README) ─────────
-    @r.post("/api/v1/incident/analyze", response_model=IncidentAssessment)
+    @r.post("/api/v1/incident/analyze", response_model=Union[IncidentCompact, IncidentAssessment])
     def incident_analyze(alert: AlertIn,
                          push: bool | None = Query(default=None, description="override PUSH_RESULT_TO_BACKEND"),
-                         force: bool = Query(default=False, description="re-run even if incident_id was analysed")):
-        """Full assessment: cause, alternatives, evidence refs, action id, risk, approval flags, notes."""
-        return analyze(alert, push, force)
+                         force: bool = Query(default=False, description="re-run even if incident_id was analysed"),
+                         view: str = View):
+        """Assessment: fault type, headline, confidence, evidence numbers, solution steps, action, approval flags.
+        `?view=full` returns the complete record (votes, refs, timings) used by the backend database."""
+        return shaped(analyze(alert, push, force), view)
 
     @r.post("/api/v1/incident/analyze/stream")
     def incident_analyze_stream(alert: AlertIn, push: bool | None = Query(default=None),
@@ -64,22 +70,23 @@ def build_agent_router(settings: Settings | None = None, clients: Clients | None
 
     @r.post("/api/v1/diagnosis/analyze", response_model=DiagnosisOut)
     def diagnosis_analyze(alert: AlertIn, push: bool | None = None, force: bool = False):
-        """Compact diagnosis in the team's example format (diagnosis, confidence, evidence, recommended_action...)."""
+        """Older compact format from the team README (diagnosis, confidence, evidence, recommended_action...).
+        New code should use /api/v1/incident/analyze (compact view), which also has the fault type and solution steps."""
         a = analyze(alert, push, force)
         return DiagnosisOut(incident_id=a.incident_id, asset_id=a.asset_id, diagnosis=a.diagnosis,
                             confidence=a.confidence, evidence=a.evidence, recommended_action=a.recommended_action_text,
                             action_id=a.recommended_action, approval_required=a.approval_required, status=a.status)
 
-    @r.get("/api/v1/incident/{incident_id}", response_model=IncidentAssessment)
-    def get_incident(incident_id: str):
+    @r.get("/api/v1/incident/{incident_id}", response_model=Union[IncidentCompact, IncidentAssessment])
+    def get_incident(incident_id: str, view: str = View):
         a = service.store.get(incident_id)
         if not a:
             raise HTTPException(404, "incident not found")
-        return a
+        return shaped(a, view)
 
-    @r.get("/api/v1/incidents", response_model=list[IncidentAssessment])
-    def list_incidents(limit: int = Query(default=20, ge=1, le=200)):
-        return service.store.latest(limit)
+    @r.get("/api/v1/incidents", response_model=list[Union[IncidentCompact, IncidentAssessment]])
+    def list_incidents(limit: int = Query(default=20, ge=1, le=200), view: str = View):
+        return [shaped(a, view) for a in service.store.latest(limit)]
 
     # ───────── integration debugging / introspection ─────────
     @r.get("/api/v1/agents/evidence/{asset_id}", response_model=EvidencePack)

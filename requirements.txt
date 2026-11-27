@@ -15,6 +15,9 @@ litellm>=1.50
 google-genai>=1.0      # required by crewAI for gemini/* models (without it: ImportError)
 anthropic>=0.40        # required by crewAI for anthropic/* models
 
+# ── Demo UI (scripts/demo_ui.py) ──
+gradio>=4.44
+
 # ── Tests ──
 pytest>=8
 
