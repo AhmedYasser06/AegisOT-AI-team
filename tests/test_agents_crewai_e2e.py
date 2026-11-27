@@ -65,10 +65,12 @@ def fake_llm():
     srv.shutdown()
 
 
-def test_full_workflow_with_crewai_and_langgraph(fake_llm, monkeypatch):
+@pytest.mark.parametrize("engine", ["crewai", "direct"])
+def test_full_workflow_with_real_llm_code(fake_llm, monkeypatch, engine):
     monkeypatch.setenv("CREWAI_DISABLE_TELEMETRY", "true")
     monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
-    s = Settings(_env_file=None, llm_enabled=True, llm_model="openai/fake-model",
+    CALLS["tool_calls"] = 0
+    s = Settings(_env_file=None, llm_enabled=True, llm_model="openai/fake-model", specialist_engine=engine, ml_validated=True,
                  anomaly_mode="mock", llm_api_base=fake_llm, llm_api_key="x", llm_model_supervisor="openai/fake-supervisor")
     a = run_incident(build_graph(s, build_clients(s)), make_alert())
     # guardrails held even though the fake LLM claimed network_issue=0.99 for the diagnosis agent
@@ -76,4 +78,7 @@ def test_full_workflow_with_crewai_and_langgraph(fake_llm, monkeypatch):
     assert a.engine in ("llm", "mixed") and "openai/fake-model" in a.llm_models_used
     assert "bogus:ref" not in a.evidence_refs
     assert a.recommended_action.value == "stop_equipment" and a.approval_required
-    assert CALLS["tool_calls"] >= 1, "crewAI never called a tool"
+    if engine == "crewai":
+        assert CALLS["tool_calls"] >= 1, "crewAI never called a tool"
+    else:
+        assert CALLS["tool_calls"] == 0, "the direct engine must answer in ONE call (no tool loop)"

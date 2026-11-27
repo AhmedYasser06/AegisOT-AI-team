@@ -1,4 +1,3 @@
-"""Small helpers shared by the agent tests (kept here so tests/ stays a flat folder)."""
 from __future__ import annotations
 
 from .schemas import AlertIn

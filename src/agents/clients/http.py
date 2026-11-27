@@ -35,8 +35,9 @@ class _Http:
 
 class HttpBackendClient(_Http):
     def get_asset(self, asset_id):        return self._request("GET", f"/api/devices/{asset_id}")
-    def get_telemetry(self, asset_id, minutes):
-        return self._request("GET", f"/api/devices/{asset_id}/telemetry", params={"minutes": minutes})
+    def get_telemetry(self, asset_id, minutes, end=None):
+        params = {"minutes": minutes, **({"end": end} if end else {})}      # end = ISO time the window ends at
+        return self._request("GET", f"/api/devices/{asset_id}/telemetry", params=params)
     def get_events(self, asset_id, kind, minutes):
         return self._request("GET", f"/api/devices/{asset_id}/events", params={"kind": kind, "minutes": minutes})
     def get_maintenance(self, asset_id):  return self._request("GET", f"/api/devices/{asset_id}/maintenance")

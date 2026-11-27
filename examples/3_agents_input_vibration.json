@@ -1,0 +1,57 @@
+{
+  "incident_id": "AGT-vibration",
+  "asset_id": "esp32-conveyor-01",
+  "timestamp": "2026-11-20T00:46:39.870000Z",
+  "window": {
+    "start": "2026-11-20T00:46:39.469000Z",
+    "end": "2026-11-20T00:46:39.870000Z",
+    "n_samples": 3,
+    "duration_seconds": 0.401
+  },
+  "is_anomaly": true,
+  "anomaly_score": 0.9538533725997121,
+  "raw_score": 37.62550323628992,
+  "threshold": 1.8202903386095501,
+  "model": {
+    "name": "lof",
+    "version": "0.1",
+    "feature_version": "f1"
+  },
+  "top_features": [
+    {
+      "name": "gyro_z_rad_s",
+      "contribution": 21.2929,
+      "value": -0.4319,
+      "baseline": -0.0053,
+      "direction": "low"
+    },
+    {
+      "name": "gyro_magnitude",
+      "contribution": 1.7456,
+      "value": 0.4994,
+      "baseline": 0.0325,
+      "direction": "high"
+    },
+    {
+      "name": "gyro_y_rad_s",
+      "contribution": 0.7888,
+      "value": -0.2499,
+      "baseline": -0.028,
+      "direction": "low"
+    },
+    {
+      "name": "accel_x_m_s2",
+      "contribution": 0.5632,
+      "value": -8.8442,
+      "baseline": -9.4236,
+      "direction": "high"
+    },
+    {
+      "name": "acceleration_magnitude",
+      "contribution": 0.5365,
+      "value": 9.0232,
+      "baseline": 9.4355,
+      "direction": "low"
+    }
+  ]
+}

@@ -34,28 +34,28 @@ def test_llm_failure_falls_back_to_rules(agent_settings, agent_clients):
         raise RuntimeError("llm down")
     a = run_incident(build_graph(agent_settings, agent_clients, runner=boom), make_alert())
     assert a.likely_cause == Cause.physical_fault and a.engine == "rules"
-    assert sum("LLM path failed" in n for n in a.notes) == 4
+    assert sum("LLM path failed" in n for n in a.notes) == 1      # only diagnosis can use the LLM
 
 
 def test_llm_path_cannot_invent_actions_or_skip_approval(agent_settings, agent_clients):
     """Even a runner that screams 'stop everything' only produces scores; action comes from policy."""
     def runner(role, alert, pack):
-        cause = {"diagnosis": Cause.physical_fault, "network": Cause.network_issue,
-                 "security": Cause.security_incident, "maintenance": Cause.physical_fault}[role]
-        rep = SpecialistReport(role=role, engine="llm", scores={cause: 0.95}, findings=["x"],
-                               evidence_refs=list(pack.refs)[:1], checks_performed=["c"], model="fake/model")
+        assert role == "diagnosis"                                   # the other specialists never reach the LLM
+        rep = SpecialistReport(role=role, engine="llm",
+                               scores={Cause.physical_fault: 0.95, Cause.network_issue: 0.99},   # 2nd = out of scope
+                               findings=["x"], evidence_refs=list(pack.refs)[:1], checks_performed=["c"], model="fake/model")
         return rep, []
-    a = run_incident(build_graph(agent_settings, agent_clients, runner=runner), make_alert("esp32-unknown", 0.9))
-    # security + physical + network all 0.95 -> tie -> margin rule -> inconclusive, escalated
-    assert a.status == "inconclusive" and a.recommended_action.value == "escalate_to_human"
-    assert a.engine == "llm" and "fake/model" in a.llm_models_used
+    a = run_incident(build_graph(agent_settings, agent_clients, runner=runner), make_alert("esp32-hot-01", 0.9))
+    assert a.likely_cause == Cause.physical_fault                    # supervisor ignored the out-of-scope network vote
+    assert a.recommended_action.value == "stop_equipment" and a.approval_required and not a.auto_executable
+    assert a.engine == "mixed" and "fake/model" in a.llm_models_used
 
 
 def test_supervisor_narrative_failure_is_non_fatal(agent_clients):
     s = Settings(_env_file=None, agent_api_key="k", llm_enabled=True, llm_model="bogus/none", anomaly_mode="mock")
     def runner(role, alert, pack):
-        from src.agents.rules import RULES
-        return RULES[role](alert, pack), []
+        from src.agents.roles import SPECIALISTS
+        return SPECIALISTS[role].rules(alert, pack), []
     a = run_incident(build_graph(s, agent_clients, runner=runner), make_alert())
     assert a.likely_cause == Cause.physical_fault
     assert any("narrative failed" in n for n in a.notes)
@@ -63,10 +63,10 @@ def test_supervisor_narrative_failure_is_non_fatal(agent_clients):
 
 # ───────── failure notes show the reason but never leak secrets ─────────
 def test_failure_notes_include_reason_and_redact_secrets(agent_settings, agent_clients):
-    from src.agents.graph import why
+    from src.agents.llm import short_error
 
     err = RuntimeError("404 models/x not found: https://generativelanguage.googleapis.com/v1?key=AIzaSyA1234567890abcdefghijklmnop&alt=sse sk-abcdefghijklmnopqrstuvwx")
-    text = why(err)
+    text = short_error(err)
     assert "RuntimeError" in text and "not found" in text
     assert "AIza" not in text and "sk-abc" not in text and "key=***" in text
 
@@ -79,7 +79,7 @@ def test_failure_notes_include_reason_and_redact_secrets(agent_settings, agent_c
 # ───────── free-tier controls ─────────
 def _llm_runner(calls, active=None):
     import threading, time
-    from src.agents.rules import RULES
+    from src.agents.roles import SPECIALISTS
     from src.agents.schemas import SpecialistReport
 
     def runner(role, alert, pack):
@@ -91,7 +91,7 @@ def _llm_runner(calls, active=None):
             time.sleep(0.15)
             with active["lock"]:
                 active["now"] -= 1
-        rep = RULES[role](alert, pack)
+        rep = SPECIALISTS[role].rules(alert, pack)
         return SpecialistReport(**{**rep.model_dump(), "engine": "llm", "model": "fake/m"}), []
     return runner
 
@@ -105,26 +105,22 @@ def test_llm_agents_limits_which_roles_use_the_llm(agent_clients):
     assert not any("narrative" in n for n in a.notes)
 
 
-def test_llm_agents_rejects_unknown_role(agent_clients):
+def test_llm_agents_rejects_unknown_and_rule_only_roles(agent_clients):
     import pytest
-    with pytest.raises(ValueError):
-        build_graph(Settings(_env_file=None, anomaly_mode="mock", llm_agents="diagnosis,wizard"), agent_clients)
+    for bad in ("diagnosis,wizard", "network", "security", "maintenance"):     # rule-only by design
+        with pytest.raises(ValueError):
+            build_graph(Settings(_env_file=None, anomaly_mode="mock", llm_agents=bad), agent_clients)
 
 
-def test_llm_max_concurrent_one_runs_agents_one_at_a_time(agent_clients):
-    import threading
-    active = {"lock": threading.Lock(), "now": 0, "max": 0}
-    s = Settings(_env_file=None, anomaly_mode="mock", llm_max_concurrent=1)
-    run_incident(build_graph(s, agent_clients, runner=_llm_runner([], active)), make_alert())
-    assert active["max"] == 1
-    active2 = {"lock": threading.Lock(), "now": 0, "max": 0}
-    run_incident(build_graph(Settings(_env_file=None, anomaly_mode="mock", llm_max_concurrent=4),
-                             agent_clients, runner=_llm_runner([], active2)), make_alert("esp32-rogue-01", 0.9, incident_id="i2"))
-    assert active2["max"] > 1                        # default really is parallel
+def test_rule_only_roles_never_call_the_runner(agent_clients):
+    calls = []
+    s = Settings(_env_file=None, anomaly_mode="mock", llm_agents="diagnosis,supervisor")
+    run_incident(build_graph(s, agent_clients, runner=_llm_runner(calls)), make_alert("esp32-rogue-01", 0.9))
+    assert calls == ["diagnosis"]
 
 
 def test_rate_limit_note_is_short_and_actionable():
-    from src.agents.graph import why
+    from src.agents.llm import short_error
     msg = "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota ' }}" * 5
-    text = why(RuntimeError(msg))
+    text = short_error(RuntimeError(msg))
     assert "rate limit" in text and "LLM_AGENTS" in text and len(text) < 330

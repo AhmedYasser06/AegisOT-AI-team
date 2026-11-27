@@ -24,13 +24,20 @@ def create_app(settings: Settings | None = None, clients: Clients | None = None,
                 "integrations": {"backend": settings.backend_mode, "anomaly": settings.anomaly_mode,
                                  "network": settings.network_mode}}
 
+    if settings.llm_enabled:      # first litellm import takes seconds: pay it here, BEFORE the server starts.
+        # (In a background thread it raced with uvicorn's first log line -> "KeyError: 'litellm'" at start-up.)
+        try:
+            import litellm  # noqa: F401
+        except Exception:
+            pass
+
     # Agents: /api/v1/incident/analyze, /api/v1/diagnosis/analyze, /api/v1/agents/*
     app.include_router(build_agent_router(settings, clients, runner))
 
     # ML team hook: create `router = APIRouter()` in src/ml/router.py (e.g. POST /api/v1/anomaly/predict);
     # it is included automatically. A missing module is ignored; any other import error is raised.
     try:
-        from src.ml.router import router as ml_router
+        from src.ML.router import router as ml_router
     except ModuleNotFoundError as e:
         if e.name not in ("src.ml", "src.ml.router"):
             raise

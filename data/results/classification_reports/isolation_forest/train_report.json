@@ -1,0 +1,35 @@
+{
+    "model_key": "isolation_forest",
+    "model_name": "Isolation Forest",
+    "split": "train",
+    "threshold": 0.025866221272871755,
+    "run_id": "f26eccaf840441b9a1c212beb8d4a1d1",
+    "prediction_rule": "score > threshold",
+    "classification_report": {
+        "Normal": {
+            "precision": 0.8356510745891277,
+            "recall": 0.9499401197604791,
+            "f1-score": 0.8891379890146844,
+            "support": 8350.0
+        },
+        "Anomaly": {
+            "precision": 0.6365217391304347,
+            "recall": 0.3193717277486911,
+            "f1-score": 0.4253341080766996,
+            "support": 2292.0
+        },
+        "accuracy": 0.8141326818267243,
+        "macro avg": {
+            "precision": 0.7360864068597812,
+            "recall": 0.6346559237545851,
+            "f1-score": 0.6572360485456921,
+            "support": 10642.0
+        },
+        "weighted avg": {
+            "precision": 0.7927639822313638,
+            "recall": 0.8141326818267243,
+            "f1-score": 0.7892471324924273,
+            "support": 10642.0
+        }
+    }
+}

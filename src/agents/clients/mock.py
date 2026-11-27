@@ -101,7 +101,7 @@ class MockBackendClient:
                 "enrollment_state": _sc(asset_id)["enrollment"], "firmware": "0.3.1",
                 "profile": "conveyor-drive-v1", "baseline": BASE}
 
-    def get_telemetry(self, asset_id, minutes):
+    def get_telemetry(self, asset_id, minutes, end=None):
         return {"asset_id": asset_id, "sampling_interval_s": INTERVAL_S, "window_minutes": minutes,
                 "baseline": BASE, "samples": _samples(asset_id, minutes, **_sc(asset_id)["telemetry"])}
 
