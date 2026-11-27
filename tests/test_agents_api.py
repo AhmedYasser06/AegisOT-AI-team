@@ -14,7 +14,7 @@ def test_auth_required(agent_client):
 
 
 def test_analyze_returns_contract(agent_client):
-    r = agent_client.post("/api/v1/incident/analyze", json=BODY, headers=H)
+    r = agent_client.post("/api/v1/incident/analyze?view=full", json=BODY, headers=H)
     assert r.status_code == 200
     d = r.json()
     for k in ("incident_id", "asset_id", "evidence_refs", "likely_cause", "alternatives", "confidence",
@@ -55,4 +55,4 @@ def test_actions_and_llm_endpoints(agent_client):
     acts = agent_client.get("/api/v1/agents/actions", headers=H).json()
     assert acts["stop_equipment"]["requires_approval"] is True
     llm = agent_client.get("/api/v1/agents/llm", headers=H).json()
-    assert llm["enabled"] is False and set(llm["roles"]) >= {"diagnosis", "network", "supervisor"}
+    assert llm["enabled"] is False and set(llm["roles"]) == {"diagnosis", "supervisor"}

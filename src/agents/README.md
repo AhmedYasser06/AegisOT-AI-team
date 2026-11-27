@@ -207,7 +207,7 @@ check `"engine"` is `llm` or `mixed`, `llm_models_used` is filled, and `notes` h
 
 | Provider | `.env` |
 |---|---|
-| Gemini (team default) | `LLM_PROVIDER=gemini` · `GEMINI_API_KEY=…` (default `gemini/gemini-flash-latest`, an alias; see the model-name warning below) |
+| Gemini (team default) | `LLM_PROVIDER=gemini` · `GEMINI_API_KEY=…` (default `gemini/gemini-flash-lite-latest`, an alias; see the model-name warning below) |
 | OpenAI | `LLM_PROVIDER=openai` · `OPENAI_API_KEY=…` |
 | Anthropic | `LLM_PROVIDER=anthropic` · `ANTHROPIC_API_KEY=…` |
 | Local Ollama (free, offline) | `LLM_PROVIDER=ollama` · `LLM_MODEL=llama3.1` · `LLM_API_BASE=http://localhost:11434` |

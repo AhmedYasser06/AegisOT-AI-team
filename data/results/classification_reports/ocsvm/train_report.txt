@@ -1,0 +1,13 @@
+Model: ocsvm
+Split: train
+Threshold: 0.0004153848790729552
+MLflow Run ID: 796e483b81e447c78c07c887c2c68296
+
+              precision    recall  f1-score   support
+
+      Normal       1.00      0.99      0.99      8350
+     Anomaly       0.96      1.00      0.98      2292
+
+    accuracy                           0.99     10642
+   macro avg       0.98      0.99      0.99     10642
+weighted avg       0.99      0.99      0.99     10642

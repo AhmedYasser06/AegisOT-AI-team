@@ -17,3 +17,20 @@ venv/
 Thumbs.db
 .vscode/
 .idea/
+
+
+# MLflow
+mlruns/
+mlartifacts/
+mlflow.db
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+.envml.json
+out.json

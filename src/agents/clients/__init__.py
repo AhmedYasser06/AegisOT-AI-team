@@ -36,9 +36,18 @@ def _anomaly(s: Settings):
     return _NoAnomalyClient()
 
 
+def _backend(s: Settings):
+    if s.backend_mode == "http":
+        return HttpBackendClient(s.backend_url, s.backend_token)
+    if s.backend_mode == "csv":
+        from .csv_backend import CsvBackendClient          # lazy: needs pandas, only when this mode is used
+        return CsvBackendClient(s.backend_csv)
+    return MockBackendClient()
+
+
 def build_clients(s: Settings) -> Clients:
     return Clients(
-        backend=HttpBackendClient(s.backend_url, s.backend_token) if s.backend_mode == "http" else MockBackendClient(),
+        backend=_backend(s),
         anomaly=_anomaly(s),
         network=HttpNetworkClient(s.network_url, s.network_token) if s.network_mode == "http" else MockNetworkClient(),
     )

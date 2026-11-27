@@ -1,0 +1,13 @@
+Model: robust_baseline
+Split: train
+Threshold: 8.0
+MLflow Run ID: ce9d67be32184f929258319ff17b840a
+
+              precision    recall  f1-score   support
+
+      Normal       0.96      0.96      0.96      8350
+     Anomaly       0.84      0.84      0.84      2292
+
+    accuracy                           0.93     10642
+   macro avg       0.90      0.90      0.90     10642
+weighted avg       0.93      0.93      0.93     10642

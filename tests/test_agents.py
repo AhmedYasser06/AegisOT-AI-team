@@ -11,7 +11,7 @@ CASES = [
     ("esp32-conveyor-01", 0.93, "physical_fault", "stop_equipment", True),
     ("esp32-conveyor-net", 0.70, "network_issue", "apply_network_template", True),
     ("esp32-rogue-01", 0.88, "security_incident", "isolate_device", True),
-    ("esp32-sensor-01", 0.80, "sensor_fault", "request_sensor_recheck", False),
+    ("esp32-sensor-01", 0.80, "sensor_fault", "recheck_temperature_sensor", False),
 ]
 
 
@@ -40,7 +40,7 @@ def test_network_gap_does_not_blame_machine(agent_graph):
 
 def test_low_anomaly_physical_fault_only_inspects(agent_graph):
     a = run_incident(agent_graph, make_alert("esp32-conveyor-01", 0.5))
-    assert a.recommended_action.value == "inspect_equipment" and not a.approval_required
+    assert a.recommended_action.value == "check_motor_vibration" and not a.approval_required   # vibration_rms + current up
 
 
 
@@ -75,8 +75,8 @@ def test_rpm_drop_is_detected_as_physical_fault(agent_settings):
     from src.agents.clients.mock import MockAnomalyClient, MockBackendClient, MockNetworkClient, _samples
 
     class SlowMotorBackend(MockBackendClient):
-        def get_telemetry(self, asset_id, minutes):
-            d = super().get_telemetry(asset_id, minutes)
+        def get_telemetry(self, asset_id, minutes, end=None):
+            d = super().get_telemetry(asset_id, minutes, end)
             d["samples"] = _samples(asset_id, minutes, fault_scale={"speed": 0.4})
             return d
 
