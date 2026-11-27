@@ -53,10 +53,10 @@ def test_model_may_still_be_a_plain_string_and_unknown_fields_are_ignored():
 
 def test_api_accepts_ml_json_without_asset_id(agent_client):
     body = {k: v for k, v in ML_JSON.items() if k != "asset_id"}
-    r = agent_client.post("/api/v1/incident/analyze", json=body, headers=H)
+    r = agent_client.post("/api/v1/incident/analyze?view=full", json=body, headers=H)
     assert r.status_code == 200
     d = r.json()
-    assert d["asset_id"] == "esp32-conveyor-01" and d["ml_model_version"] == "0.1" and d["schema_version"] == "1.1"
+    assert d["asset_id"] == "esp32-conveyor-01" and d["ml_model_version"] == "0.1" and d["schema_version"] == "1.2"
     assert d["latency_ms"] is not None and set(d["timings_ms"]) >= {"collect_evidence", "diagnosis", "supervisor"}
     assert {v["role"] for v in d["votes"]} == {"diagnosis", "network", "security", "maintenance"}
 
@@ -148,7 +148,7 @@ def test_network_security_maintenance_cannot_use_the_llm():
 def test_stop_equipment_is_downgraded_until_ml_is_validated(agent_clients):
     s = Settings(_env_file=None, anomaly_mode="mock", ml_validated=False)
     a = run_incident(build_graph(s, agent_clients), make_alert("esp32-conveyor-01", 0.93))
-    assert a.likely_cause == Cause.physical_fault and a.recommended_action.value == "inspect_equipment"
+    assert a.likely_cause == Cause.physical_fault and a.recommended_action.value == "check_motor_vibration"
     assert not a.approval_required and a.ml_validated is False and any("ML_VALIDATED" in n for n in a.notes)
     s2 = Settings(_env_file=None, anomaly_mode="mock", ml_validated=True)
     assert run_incident(build_graph(s2, agent_clients), make_alert("esp32-conveyor-01", 0.93)).recommended_action.value == "stop_equipment"

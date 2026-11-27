@@ -51,7 +51,7 @@ exp() { # asset expected_action expected_approval
 exp esp32-conveyor-01 stop_equipment True
 exp esp32-conveyor-net apply_network_template True
 exp esp32-rogue-01 isolate_device True
-exp esp32-sensor-01 request_sensor_recheck False
+exp esp32-sensor-01 recheck_temperature_sensor False
 exp esp32-unknown-99 escalate_to_human False
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:$PORT/api/v1/incident/analyze -H 'Content-Type: application/json' -d '{}')" = 401 ] && ok "no key -> 401" || bad "no key should be 401"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:$PORT/api/v1/incident/analyze -H "X-API-Key: $KEY" -H 'Content-Type: application/json' -d '{"asset_id":"x","incident_id":"y","anomaly_score":5}')" = 422 ] && ok "score 5 -> 422" || bad "bad score should be 422"
@@ -96,8 +96,8 @@ try:
     d = json.load(sys.stdin)
 except Exception:
     print('BADJSON'); sys.exit(0)
-used = d.get('llm_models_used') or []
-print('OK' if (d.get('status') and used and d.get('engine') != 'rules') else 'RULES_ONLY', '|', d.get('engine'), '|', used, '|', d.get('likely_cause'), '|', d.get('recommended_action'))
+llm = d.get('llm') or {}
+print('OK' if (d.get('status') and llm.get('status') == 'ok') else 'RULES_ONLY', '|', llm.get('status'), '|', llm.get('model'), '|', d.get('fault_type'), '|', (d.get('action') or {}).get('id'), '|', llm.get('error'))
 " 2>/dev/null)
   case "$RES" in
     OK*)       ok "LLM answered -> $RES" ;;

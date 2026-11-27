@@ -1,8 +1,3 @@
-"""The specialist roster: ONE place that says who each specialist is.
-
-Adding or changing a specialist = editing one entry here (plus its rules function in rules.py).
-Everything else (graph nodes, crewAI prompts and tools, guardrails, supervisor merge) reads this table.
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass

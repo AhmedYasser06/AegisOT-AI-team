@@ -1,7 +1,3 @@
-"""crewAI wrappers around ToolBox (crewAI is imported lazily so rules-only mode and tests stay light).
-
-Each specialist only gets the tools listed in its `Role.sources` (least privilege, see roles.py).
-"""
 from __future__ import annotations
 
 import json

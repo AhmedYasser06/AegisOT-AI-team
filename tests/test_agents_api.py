@@ -14,7 +14,7 @@ def test_auth_required(agent_client):
 
 
 def test_analyze_returns_contract(agent_client):
-    r = agent_client.post("/api/v1/incident/analyze", json=BODY, headers=H)
+    r = agent_client.post("/api/v1/incident/analyze?view=full", json=BODY, headers=H)
     assert r.status_code == 200
     d = r.json()
     for k in ("incident_id", "asset_id", "evidence_refs", "likely_cause", "alternatives", "confidence",

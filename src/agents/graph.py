@@ -1,17 +1,3 @@
-"""LangGraph workflow (the fixed, supervised pipeline).
-
-    collect_evidence ─┬─> diagnosis ──┐
-                      ├─> network ────┤
-                      ├─> security ───┼─> supervisor ─> END
-                      └─> maintenance ┘
-
-* collect_evidence : deterministic fetch (backend / anomaly / network) -> EvidencePack with evidence refs
-* specialists      : diagnosis may use the LLM (one call, or a crewAI crew); network / security / maintenance are
-                     ALWAYS rules (no LLM). Any LLM failure -> rules fallback
-* supervisor       : merge + policy gate + allowlist + inconclusive logic + optional LLM narrative
-
-Demo from the terminal: python -m src.agents.cli
-"""
 from __future__ import annotations
 
 import json
@@ -24,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 
 from .agents import Runner, make_runner
 from .clients import Clients
+from .crosscheck import crosscheck
 from .llm import complete_text, resolve_llm, short_error
 from .roles import LLM_ROLES, SPECIALISTS
 from .schemas import AlertIn, IncidentAssessment, SpecialistReport
@@ -33,9 +20,11 @@ from .tools import EvidencePack, InlineAnomaly, collect_evidence, parse_channels
 
 NARRATIVE_SYSTEM = (
     "You write a 2-3 sentence incident explanation for a plant operator. Use ONLY the JSON facts provided. "
+    "The reader already sees a headline with the main measurement, so do NOT restate it. Say what it means for the "
+    "machine, what to check first and why, and how sure the diagnosis is. Add a number only if it is new. Do not state the confidence percentage (it is shown separately). "
     "Do not add causes, actions or numbers that are not in the JSON. Plain text, no markdown.")
-NARRATIVE_FACTS = {"asset_id", "status", "likely_cause", "confidence", "alternatives",
-                   "recommended_action", "approval_required", "findings"}
+NARRATIVE_FACTS = {"asset_id", "status", "likely_cause", "fault_type", "confidence", "alternatives",
+                   "recommended_action", "recommended_solution", "approval_required", "reason", "findings"}
 
 
 def narrative_facts(assessment: IncidentAssessment) -> str:
@@ -87,15 +76,21 @@ def build_graph(settings: Settings, clients: Clients, runner: Runner | None = No
     def make_specialist(role: str):
         def node(state: State):
             alert, pack = state["alert"], state["pack"]
-            t0, note = time.perf_counter(), None
+            t0 = time.perf_counter()
             if runner is not None and role in llm_roles and SPECIALISTS[role].uses_llm:
                 try:
                     with gate:
                         report, notes = runner(role, alert, pack)
+                    if settings.llm_crosscheck and report.engine == "llm":
+                        report, why_note = crosscheck(report, SPECIALISTS[role].rules(alert, pack))
+                        notes = [*notes, why_note] if why_note else notes
                     return {"reports": [report], "notes": notes, "timings_ms": {role: _ms(t0)}}
                 except Exception as e:  # LLM down, invalid output, timeout, tool loop failure, ...
-                    note = f"{role}: LLM path failed ({short_error(e)}); deterministic rules used."
-            return {"reports": [SPECIALISTS[role].rules(alert, pack)], "notes": [note] if note else [],
+                    err = short_error(e)
+                    note = f"{role}: LLM path failed ({err}); deterministic rules used."
+                    fallback = SPECIALISTS[role].rules(alert, pack).model_copy(update={"llm_error": err})
+                    return {"reports": [fallback], "notes": [note], "timings_ms": {role: _ms(t0)}}
+            return {"reports": [SPECIALISTS[role].rules(alert, pack)], "notes": [],
                     "timings_ms": {role: _ms(t0)}}
         node.__name__ = f"{role}_node"
         return node

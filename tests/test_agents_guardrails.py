@@ -45,7 +45,7 @@ def test_llm_path_cannot_invent_actions_or_skip_approval(agent_settings, agent_c
                                scores={Cause.physical_fault: 0.95, Cause.network_issue: 0.99},   # 2nd = out of scope
                                findings=["x"], evidence_refs=list(pack.refs)[:1], checks_performed=["c"], model="fake/model")
         return rep, []
-    a = run_incident(build_graph(agent_settings, agent_clients, runner=runner), make_alert("esp32-unknown", 0.9))
+    a = run_incident(build_graph(agent_settings, agent_clients, runner=runner), make_alert("esp32-hot-01", 0.9))
     assert a.likely_cause == Cause.physical_fault                    # supervisor ignored the out-of-scope network vote
     assert a.recommended_action.value == "stop_equipment" and a.approval_required and not a.auto_executable
     assert a.engine == "mixed" and "fake/model" in a.llm_models_used
