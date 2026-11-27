@@ -139,11 +139,3 @@ Every field of every JSON (ML, Backend, Network, final result) is in [`src/agent
 ## Configuration
 
 Secrets go in `.env` (never committed). Everything else is in `configs/config.yaml`. The LLM provider is not hardcoded: Gemini is the default, and OpenAI, Anthropic or a local Ollama model work by changing `.env`.
-
----
-
-## More documentation
-
-- [`src/agents/README.md`](src/agents/README.md): full guide to the agent layer
-- [`src/agents/docs/ARCHITECTURE.md`](src/agents/docs/ARCHITECTURE.md): code map and "where do I change X?"
-- [`src/agents/docs/CONTRACTS.md`](src/agents/docs/CONTRACTS.md): JSON contracts and when to call ML / agents
